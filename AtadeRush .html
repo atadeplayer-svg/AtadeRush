@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- Méta-tags essentiels pour la réactivité et l'encodage des caractères -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AtadeRush - Jeux & Chat</title>
+
+    <!--
+    Inclusion du framework CSS Tailwind via CDN.
+    Cela nous permet d'utiliser des classes pour un style moderne sans écrire de CSS.
+    Le style par défaut utilise la police Inter.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Styles personnalisés pour la police Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Classe pour la typographie en diagonale */
+        .diagonal-text {
+            transform: rotate(-5deg); /* Rotation du texte de -5 degrés */
+            transform-origin: 0 50%; /* Point d'origine de la rotation */
+            display: inline-block; /* Pour appliquer la transformation */
+        }
+
+        /* Styles spécifiques pour le jeu de morpion */
+        .tic-tac-toe-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 8px; /* Espace entre les cellules */
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .tic-tac-toe-cell {
+            width: 100px;
+            height: 100px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .tic-tac-toe-cell:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* Styles spécifiques pour le pendu */
+        .hangman-word span {
+            display: inline-block;
+            width: 2rem;
+            text-align: center;
+            border-bottom: 2px solid #6b7280;
+            margin: 0 4px;
+            font-size: 2rem;
+        }
+
+        /* Styles pour le jeu de la vie */
+        #conwayCanvas {
+            border: 1px solid #e5e7eb;
+            background-color: #ffffff;
+            touch-action: none;
+        }
+
+        /* Styles pour le puzzle */
+        #puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0; /* Pas d'espace entre les pièces */
+            max-width: 300px;
+            margin: 0 auto;
+            border: 2px solid #374151;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .puzzle-piece {
+            width: 100px;
+            height: 100px;
+            background-size: 300px 300px;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .puzzle-piece::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid transparent;
+            z-index: 2;
+        }
+
+        .puzzle-piece:hover {
+            z-index: 10;
+            transform: scale(1.05);
+            border-color: #4f46e5;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+        }
+
+        .puzzle-piece.selected {
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+            z-index: 20;
+            transform: scale(1.08);
+        }
+
+        /* Masque SVG pour les bords de puzzle */
+        .puzzle-piece {
+            -webkit-mask-image: url('data:image/svg+xml;charset=UTF-8,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><defs><path id="puz" d="M0,0 h100 v100 h-100 z M50,0 C65,0 65,15 65,25 S85,35 85,50 65,65 65,75 65,100 50,100 35,100 35,85 15,65 15,50 35,35 35,15 35,0 50,0 Z" /></defs><use xlink:href="#puz" fill="black" /></svg>');
+            -webkit-mask-size: 100% 100%;
+            mask-image: url('data:image/svg+xml;charset=UTF-8,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><defs><path id="puz" d="M0,0 h100 v100 h-100 z M50,0 C65,0 65,15 65,25 S85,35 85,50 65,65 65,75 65,100 50,100 35,100 35,85 15,65 15,50 35,35 35,15 35,0 50,0 Z" /></defs><use xlink:href="#puz" fill="black" /></svg>');
+            mask-size: 100% 100%;
+        }
+
+        /* Style des boutons d'accès rapide */
+        .quick-access-btn {
+            @apply flex flex-col items-center justify-center p-4 m-2 w-28 h-28 rounded-xl shadow-lg bg-white hover:bg-gray-200 transition-colors duration-200 ease-in-out transform hover:scale-105;
+        }
+        .quick-access-btn .emoji {
+            @apply text-5xl mb-2;
+        }
+        .quick-access-btn .label {
+            @apply text-sm font-semibold text-gray-800 text-center;
+        }
+
+        /* Styles spécifiques pour le chat */
+        .tab-button.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .chat-container {
+            max-height: 500px;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .chat-container::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased leading-relaxed">
+
+    <!-- En-tête (Header) de la page -->
+    <header class="bg-white shadow-sm py-4 md:py-6 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <!-- Nom ou logo du site avec la nouvelle classe pour le style en diagonale -->
+            <a href="#" class="text-xl md:text-2xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors duration-300">
+                <span class="diagonal-text">AtadeRush</span>
+            </a>
+            <!-- Navigation principale -->
+            <nav class="space-x-4 md:space-x-6">
+                <a href="#accueil" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors duration-300">Accueil</a>
+                <a href="#mini-jeux" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors duration-300">Mini-jeux</a>
+                <a href="#chat-section" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors duration-300">Chat</a>
+                <a href="#contact" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors duration-300">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Section principale - Accueil -->
+    <main>
+        <section id="accueil" class="py-16 md:py-24 text-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-b-lg shadow-md mx-4 sm:mx-8 md:mx-16 lg:mx-24 mt-4">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 animate-fade-in">Bienvenue !</h1>
+            <p class="text-lg md:text-xl font-light mb-8 max-w-2xl mx-auto opacity-90">
+                Découvrez et amusez-vous avec notre collection de mini-jeux et notre chat en direct.
+            </p>
+            <!-- Boutons d'accès rapide aux mini-jeux -->
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <a href="#puzzle-game" class="quick-access-btn">
+                    <span class="emoji">🧩</span>
+                    <span class="label">Puzzle</span>
+                </a>
+                <a href="#hangman-game" class="quick-access-btn">
+                    <span class="emoji">✍️</span>
+                    <span class="label">Le Pendu</span>
+                </a>
+                <a href="#conway-game" class="quick-access-btn">
+                    <span class="emoji">🧬</span>
+                    <span class="label">Jeu de la vie</span>
+                </a>
+                <a href="#cookie-clicker-game" class="quick-access-btn">
+                    <span class="emoji">🍪</span>
+                    <span class="label">Cookie Clicker</span>
+                </a>
+                <a href="#tic-tac-toe-game" class="quick-access-btn">
+                    <span class="emoji">❌</span>
+                    <span class="label">Morpion</span>
+                </a>
+                <a href="#number-guess-game" class="quick-access-btn">
+                    <span class="emoji">🔢</span>
+                    <span class="label">Devinez le nombre</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Section des mini-jeux -->
+        <section id="mini-jeux" class="py-16 md:py-24 bg-gray-200">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8">Mini-jeux</h2>
+
+                <!-- Mini-jeu: Le puzzle -->
+                <div id="puzzle-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl font-bold mb-4">🧩 Puzzle</h3>
+                    <p class="text-lg text-gray-600 mb-4">
+                        Remettez les pièces à leur place !
+                    </p>
+                    <div id="puzzle-container" class="mb-4"></div>
+                    <p id="puzzle-message" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                    <button id="puzzle-reset" class="mt-4 bg-indigo-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300">
+                        Nouveau puzzle
+                    </button>
+                </div>
+
+                <!-- Mini-jeu: Le pendu -->
+                <div id="hangman-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl font-bold mb-4">✍️ Le Pendu</h3>
+                    <p class="text-lg text-gray-600 mb-4">
+                        Devinez le mot caché.
+                    </p>
+                    <div id="hangman-word-container" class="hangman-word mb-4"></div>
+                    <p id="hangman-message" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                    <div id="keyboard" class="flex flex-wrap justify-center gap-2"></div>
+                    <button id="hangman-reset" class="mt-4 bg-indigo-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300">
+                        Nouveau mot
+                    </button>
+                </div>
+
+                <!-- Mini-jeu: Le Jeu de la vie de Conway -->
+                <div id="conway-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl font-bold mb-4">🧬 Jeu de la vie de Conway</h3>
+                    <p class="text-lg text-gray-600 mb-4">
+                        Cliquez sur la grille pour créer des cellules, puis appuyez sur "Démarrer".
+                    </p>
+                    <canvas id="conwayCanvas" class="w-full"></canvas>
+                    <div class="flex justify-center gap-4 mt-4">
+                        <button id="conwayStart" class="bg-green-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-green-700 transition-colors duration-300">Démarrer</button>
+                        <button id="conwayStop" class="bg-red-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-red-700 transition-colors duration-300">Arrêter</button>
+                        <button id="conwayClear" class="bg-gray-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-gray-700 transition-colors duration-300">Effacer</button>
+                    </div>
+                </div>
+
+                <!-- Mini-jeu: Cookie Clicker -->
+                <div id="cookie-clicker-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl font-bold mb-4">🍪 Cookie Clicker</h3>
+                    <p class="text-lg text-gray-600 mb-4">
+                        Cliquez sur le cookie pour gagner des points !
+                    </p>
+                    <div id="cookie" class="w-32 h-32 mx-auto cursor-pointer select-none" style="font-size: 8rem; line-height: 1;">
+                        🍪
+                    </div>
+                    <p class="text-2xl font-bold mt-4">
+                        <span id="score">0</span> cookies
+                    </p>
+
+                    <!-- Bouton pour acheter une amélioration -->
+                    <div class="mt-8">
+                        <button id="buyUpgrade" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300">
+                            Acheter une ferme de cookies (Coût: <span id="upgradeCost">10</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mini-jeu: Morpion (Tic-Tac-Toe) -->
+                <div id="tic-tac-toe-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mt-8 mb-8">
+                    <h3 class="text-2xl font-bold mb-4">❌ Morpion</h3>
+                    <p id="ticTacToeStatus" class="text-lg font-semibold text-gray-800 mb-4">C'est le tour de X</p>
+                    <div id="ticTacToeBoard" class="tic-tac-toe-board">
+                        <!-- Les cellules seront générées par JavaScript -->
+                    </div>
+                    <button id="ticTacToeReset" class="mt-4 bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300">
+                        Rejouer
+                    </button>
+                </div>
+
+                <!-- Mini-jeu: Devinez le nombre -->
+                <div id="number-guess-game" class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mt-8">
+                    <h3 class="text-2xl font-bold mb-4">🔢 Devinez le nombre</h3>
+                    <p class="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
+                        J'ai choisi un nombre entre 1 et 100. À vous de le deviner !
+                    </p>
+                    <div class="flex flex-col items-center">
+                        <input type="number" id="guessInput" class="w-full md:w-2/3 p-3 rounded-lg border-2 border-gray-300 text-center text-lg focus:outline-none focus:border-indigo-500 transition-colors duration-300" placeholder="Entrez votre nombre">
+                        <button id="guessButton" class="mt-4 bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300">
+                            Deviner
+                        </button>
+                        <p id="message" class="mt-4 text-lg font-semibold text-gray-800"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Nouvelle section pour l'application de chat -->
+        <section id="chat-section" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8">Application de Chat</h2>
+                <!-- Le conteneur racine pour l'application React -->
+                <div id="react-chat-root" class="flex justify-center"></div>
+            </div>
+        </section>
+
+        <!-- Section de contact et d'avis -->
+        <section id="contact" class="py-16 md:py-24 bg-gray-200">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8">Donnez votre avis</h2>
+
+                <!-- Section de notation avec des étoiles -->
+                <div class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto mb-8">
+                    <h3 class="text-xl font-bold mb-4">Notez le site !</h3>
+                    <div id="rating-stars" class="flex justify-center text-3xl text-gray-400 mb-4">
+                        <span class="cursor-pointer hover:text-yellow-400" data-value="1">★</span>
+                        <span class="cursor-pointer hover:text-yellow-400" data-value="2">★</span>
+                        <span class="cursor-pointer hover:text-yellow-400" data-value="3">★</span>
+                        <span class="cursor-pointer hover:text-yellow-400" data-value="4">★</span>
+                        <span class="cursor-pointer hover:text-yellow-400" data-value="5">★</span>
+                    </div>
+                    <p id="rating-message" class="text-sm text-gray-600"></p>
+                </div>
+
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Contactez-nous</h2>
+                <p class="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+                    Pour toute question ou demande de devis, n'hésitez pas à nous contacter.
+                </p>
+                <a href="mailto:contact@votresite.com" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300 ease-in-out">
+                    Envoyer un e-mail
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Pied de page (Footer) -->
+    <footer class="bg-white py-6 mt-8 shadow-inner">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>&copy; 2024 AtadeRush. Tous droits réservés.</p>
+            <!-- Lien vers Gemini -->
+            <p class="mt-2 text-xs">
+                Site conçu avec l'aide de <a href="https://gemini.google.com" target="_blank" class="text-indigo-600 hover:text-indigo-700 font-medium">Gemini</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bibliothèques pour le chat React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+
+    <!-- Scripts pour les mini-jeux -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Logique du jeu de puzzle ---
+            const puzzleContainer = document.getElementById('puzzle-container');
+            const puzzleMessage = document.getElementById('puzzle-message');
+            const puzzleResetButton = document.getElementById('puzzle-reset');
+            const PUZZLE_SIZE = 3;
+            const TOTAL_PIECES = PUZZLE_SIZE * PUZZLE_SIZE;
+            const IMAGE_URL = 'https://placehold.co/300x300/F06060/FFFFFF?text=Puzzle+Chat';
+            let pieces = [];
+            let selectedPiece = null;
+
+            function createPuzzlePieces() {
+                pieces = [];
+                for (let i = 0; i < TOTAL_PIECES; i++) {
+                    const piece = document.createElement('div');
+                    piece.classList.add('puzzle-piece');
+                    const x = (i % PUZZLE_SIZE) * 100;
+                    const y = Math.floor(i / PUZZLE_SIZE) * 100;
+                    piece.style.backgroundImage = `url(${IMAGE_URL})`;
+                    piece.style.backgroundPosition = `-${x}px -${y}px`;
+                    piece.dataset.correctIndex = i;
+                    piece.addEventListener('click', handlePieceClick);
+                    pieces.push(piece);
+                }
+            }
+
+            function shufflePieces() {
+                for (let i = pieces.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+                }
+            }
+
+            function renderPuzzle() {
+                puzzleContainer.innerHTML = '';
+                pieces.forEach(piece => puzzleContainer.appendChild(piece));
+            }
+
+            function handlePieceClick(event) {
+                const clickedPiece = event.target;
+                if (!selectedPiece) {
+                    selectedPiece = clickedPiece;
+                    selectedPiece.classList.add('selected');
+                } else {
+                    const selectedIndex = pieces.indexOf(selectedPiece);
+                    const clickedIndex = pieces.indexOf(clickedPiece);
+                    
+                    // Échange les pièces dans le tableau
+                    const temp = pieces[selectedIndex];
+                    pieces[selectedIndex] = pieces[clickedIndex];
+                    pieces[clickedIndex] = temp;
+                    
+                    selectedPiece.classList.remove('selected');
+                    selectedPiece = null;
+                    renderPuzzle();
+                    checkWin();
+                }
+            }
+
+            function checkWin() {
+                let win = true;
+                for (let i = 0; i < pieces.length; i++) {
+                    if (parseInt(pieces[i].dataset.correctIndex) !== i) {
+                        win = false;
+                        break;
+                    }
+                }
+                if (win) {
+                    puzzleMessage.textContent = 'Félicitations, vous avez réussi !';
+                }
+            }
+
+            function startNewPuzzle() {
+                createPuzzlePieces();
+                shufflePieces();
+                renderPuzzle();
+                puzzleMessage.textContent = '';
+            }
+
+            puzzleResetButton.addEventListener('click', startNewPuzzle);
+            startNewPuzzle();
+
+            // --- Logique de la notation par étoiles ---
+            const starContainer = document.getElementById('rating-stars');
+            const ratingMessage = document.getElementById('rating-message');
+
+            starContainer.addEventListener('click', (event) => {
+                const clickedStar = event.target;
+                if (clickedStar.tagName === 'SPAN') {
+                    const rating = clickedStar.dataset.value;
+                    let message = '';
+                    switch(rating) {
+                        case '1': message = 'Dommage !'; break;
+                        case '2': message = 'Nous pouvons faire mieux.'; break;
+                        case '3': message = 'Pas mal !'; break;
+                        case '4': message = 'Excellent !'; break;
+                        case '5': message = 'Fantastique, merci !'; break;
+                        default: message = 'Merci pour votre vote !';
+                    }
+                    ratingMessage.textContent = message;
+
+                    // Met à jour la couleur des étoiles
+                    const stars = starContainer.querySelectorAll('span');
+                    stars.forEach((star) => {
+                        if (star.dataset.value <= rating) {
+                            star.style.color = '#f59e0b'; // Jaune
+                        } else {
+                            star.style.color = '#d1d5db'; // Gris
+                        }
+                    });
+                }
+            });
+
+
+            // --- Logique du jeu "Devinez le nombre" ---
+            const randomNumber = Math.floor(Math.random() * 100) + 1;
+            const guessInput = document.getElementById('guessInput');
+            const guessButton = document.getElementById('guessButton');
+            const message = document.getElementById('message');
+            let attempts = 0;
+
+            function checkGuess() {
+                const userGuess = Number(guessInput.value);
+
+                if (userGuess < 1 || userGuess > 100 || isNaN(userGuess)) {
+                    message.textContent = 'Veuillez entrer un nombre valide entre 1 et 100.';
+                    message.style.color = '#dc2626'; /* Rouge */
+                    return;
+                }
+
+                attempts++;
+
+                if (userGuess === randomNumber) {
+                    message.textContent = `Félicitations ! Vous avez trouvé le nombre en ${attempts} tentatives.`;
+                    message.style.color = '#10b981'; /* Vert */
+                    guessInput.disabled = true;
+                    guessButton.disabled = true;
+                } else if (userGuess < randomNumber) {
+                    message.textContent = 'Le nombre à deviner est plus grand.';
+                    message.style.color = '#f59e0b'; /* Jaune */
+                } else {
+                    message.textContent = 'Le nombre à deviner est plus petit.';
+                    message.style.color = '#f59e0b'; /* Jaune */
+                }
+            }
+
+            guessButton.addEventListener('click', checkGuess);
+            guessInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkGuess();
+                }
+            });
+
+            // --- Logique du jeu "Cookie Clicker" ---
+            const cookie = document.getElementById('cookie');
+            const scoreDisplay = document.getElementById('score');
+            const buyUpgradeButton = document.getElementById('buyUpgrade');
+            const upgradeCostDisplay = document.getElementById('upgradeCost');
+            let score = 0;
+            let upgradeCost = 10;
+            let autoClickers = 0;
+
+            // Fonction pour mettre à jour l'affichage du score
+            function updateScore() {
+                scoreDisplay.textContent = Math.floor(score);
+            }
+
+            // Événement de clic sur le cookie
+            cookie.addEventListener('click', () => {
+                score++;
+                updateScore();
+            });
+
+            // Événement de clic sur le bouton d'amélioration
+            buyUpgradeButton.addEventListener('click', () => {
+                if (score >= upgradeCost) {
+                    score -= upgradeCost;
+                    autoClickers++;
+                    upgradeCost = Math.floor(upgradeCost * 1.5);
+                    upgradeCostDisplay.textContent = upgradeCost;
+                    updateScore();
+                } else {
+                    // Message d'erreur simple
+                    buyUpgradeButton.textContent = "Pas assez de cookies !";
+                    setTimeout(() => {
+                        buyUpgradeButton.textContent = `Acheter une ferme de cookies (Coût: ${upgradeCost})`;
+                    }, 1000);
+                }
+            });
+
+            // Gère les clics automatiques
+            setInterval(() => {
+                score += autoClickers;
+                updateScore();
+            }, 1000);
+
+            // --- Logique du jeu "Morpion" (Tic-Tac-Toe) ---
+            const board = document.getElementById('ticTacToeBoard');
+            const status = document.getElementById('ticTacToeStatus');
+            const resetButton = document.getElementById('ticTacToeReset');
+            let currentPlayer = 'X';
+            let gameBoard = ['', '', '', '', '', '', '', '', ''];
+            let gameActive = true;
+
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Lignes
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colonnes
+                [0, 4, 8], [2, 4, 6]             // Diagonales
+            ];
+
+            // Fonction pour créer le tableau de jeu
+            function createBoard() {
+                board.innerHTML = ''; // Efface les cellules existantes
+                gameBoard.forEach((cell, index) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.classList.add('tic-tac-toe-cell');
+                    cellElement.dataset.index = index;
+                    cellElement.addEventListener('click', handleCellClick);
+                    board.appendChild(cellElement);
+                });
+            }
+
+            // Gère le clic sur une cellule
+            function handleCellClick(event) {
+                const clickedCell = event.target;
+                const clickedCellIndex = parseInt(clickedCell.dataset.index);
+
+                // Vérifie si la cellule est déjà remplie ou si le jeu est terminé
+                if (gameBoard[clickedCellIndex] !== '' || !gameActive) {
+                    return;
+                }
+
+                // Met à jour l'état du jeu et l'affichage de la cellule
+                gameBoard[clickedCellIndex] = currentPlayer;
+                clickedCell.textContent = currentPlayer;
+
+                checkResult();
+            }
+
+            // Vérifie le résultat de la partie (victoire, égalité)
+            function checkResult() {
+                let roundWon = false;
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const winCondition = winningConditions[i];
+                    let a = gameBoard[winCondition[0]];
+                    let b = gameBoard[winCondition[1]];
+                    let c = gameBoard[winCondition[2]];
+
+                    if (a === '' || b === '' || c === '') {
+                        continue;
+                    }
+                    if (a === b && b === c) {
+                        roundWon = true;
+                        break;
+                    }
+                }
+
+                if (roundWon) {
+                    status.textContent = `Le joueur ${currentPlayer} a gagné !`;
+                    gameActive = false;
+                    return;
+                }
+
+                // Vérifie pour une égalité
+                if (!gameBoard.includes('')) {
+                    status.textContent = `Match nul !`;
+                    gameActive = false;
+                    return;
+                }
+
+                // Change de joueur
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                status.textContent = `C'est le tour de ${currentPlayer}`;
+            }
+
+            // Réinitialise la partie
+            function resetGame() {
+                gameBoard = ['', '', '', '', '', '', '', '', ''];
+                gameActive = true;
+                currentPlayer = 'X';
+                status.textContent = `C'est le tour de ${currentPlayer}`;
+                createBoard(); // Recrée les cellules du tableau
+            }
+
+            // Événement sur le bouton de réinitialisation
+            resetButton.addEventListener('click', resetGame);
+
+            // Initialise le jeu au chargement de la page
+            createBoard();
+
+            // --- Logique du jeu "Le Pendu" ---
+            const hangmanWords = ['ordinateur', 'programmation', 'developpement', 'internet', 'algorithme'];
+            const wordContainer = document.getElementById('hangman-word-container');
+            const hangmanMessage = document.getElementById('hangman-message');
+            const keyboardContainer = document.getElementById('keyboard');
+            const hangmanResetButton = document.getElementById('hangman-reset');
+            let selectedWord = '';
+            let guessedLetters = [];
+            let remainingGuesses = 6;
+            let hangmanGameEnded = false;
+
+            // Fonction pour démarrer une nouvelle partie
+            function startNewHangmanGame() {
+                hangmanGameEnded = false;
+                remainingGuesses = 6;
+                guessedLetters = [];
+                selectedWord = hangmanWords[Math.floor(Math.random() * hangmanWords.length)];
+                hangmanMessage.textContent = 'Devinez le mot !';
+                renderWord();
+                renderKeyboard();
+            }
+
+            // Affiche le mot avec les lettres devinées
+            function renderWord() {
+                wordContainer.innerHTML = '';
+                selectedWord.split('').forEach(letter => {
+                    const span = document.createElement('span');
+                    if (guessedLetters.includes(letter)) {
+                        span.textContent = letter;
+                    } else {
+                        span.textContent = '_';
+                    }
+                    wordContainer.appendChild(span);
+                });
+            }
+
+            // Affiche le clavier
+            function renderKeyboard() {
+                keyboardContainer.innerHTML = '';
+                'abcdefghijklmnopqrstuvwxyz'.split('').forEach(letter => {
+                    const button = document.createElement('button');
+                    button.textContent = letter;
+                    button.classList.add('p-2', 'rounded-md', 'bg-gray-300', 'hover:bg-gray-400', 'font-bold', 'uppercase', 'transition-colors', 'duration-200');
+                    button.disabled = guessedLetters.includes(letter);
+                    button.addEventListener('click', () => handleGuess(letter));
+                    keyboardContainer.appendChild(button);
+                });
+            }
+
+            // Gère la devinette d'une lettre
+            function handleGuess(letter) {
+                if (hangmanGameEnded) return;
+
+                guessedLetters.push(letter);
+                renderKeyboard();
+
+                if (selectedWord.includes(letter)) {
+                    renderWord();
+                    if (!wordContainer.textContent.includes('_')) {
+                        hangmanMessage.textContent = 'Félicitations, vous avez gagné !';
+                        hangmanGameEnded = true;
+                    }
+                } else {
+                    remainingGuesses--;
+                    hangmanMessage.textContent = `Faux ! Il vous reste ${remainingGuesses} tentatives.`;
+                    if (remainingGuesses === 0) {
+                        hangmanMessage.textContent = `Vous avez perdu ! Le mot était "${selectedWord}".`;
+                        hangmanGameEnded = true;
+                    }
+                }
+            }
+
+            // Événement pour le bouton "Nouveau mot"
+            hangmanResetButton.addEventListener('click', startNewHangmanGame);
+
+            // Démarrer la première partie
+            startNewHangmanGame();
+
+            // --- Logique du jeu de la vie de Conway ---
+            const canvas = document.getElementById('conwayCanvas');
+            const ctx = canvas.getContext('2d');
+            const startButton = document.getElementById('conwayStart');
+            const stopButton = document.getElementById('conwayStop');
+            const clearButton = document.getElementById('conwayClear');
+
+            const resolution = 10;
+            let COLS, ROWS;
+            let grid;
+            let interval = null;
+
+            function createGrid(cols, rows) {
+                const arr = new Array(cols).fill(null)
+                    .map(() => new Array(rows).fill(0));
+                return arr;
+            }
+
+            function drawGrid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let col = 0; col < COLS; col++) {
+                    for (let row = 0; row < ROWS; row++) {
+                        const cell = grid[col][row];
+                        ctx.beginPath();
+                        ctx.rect(col * resolution, row * resolution, resolution, resolution);
+                        ctx.fillStyle = cell ? 'black' : '#ffffff';
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Gère le redimensionnement du canvas
+            function resizeCanvas() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = Math.min(600, canvas.parentElement.clientWidth);
+
+                // Si la grille n'existe pas, on la crée
+                if (!grid) {
+                    COLS = Math.floor(canvas.width / resolution);
+                    ROWS = Math.floor(canvas.height / resolution);
+                    grid = createGrid(COLS, ROWS);
+                } else {
+                    // Si elle existe, on la redimensionne
+                    const newCols = Math.floor(canvas.width / resolution);
+                    const newRows = Math.floor(canvas.height / resolution);
+                    const newGrid = createGrid(newCols, newRows);
+                    for(let col = 0; col < Math.min(COLS, newCols); col++) {
+                        for (let row = 0; row < Math.min(ROWS, newRows); row++) {
+                            newGrid[col][row] = grid[col][row];
+                        }
+                    }
+                    grid = newGrid;
+                    COLS = newCols;
+                    ROWS = newRows;
+                }
+                drawGrid();
+            }
+
+            // Gère le clic sur le canvas pour créer des cellules
+            function handleCanvasClick(event) {
+                if (interval) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                const col = Math.floor(x / resolution);
+                const row = Math.floor(y / resolution);
+
+                if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+                    grid[col][row] = grid[col][row] ? 0 : 1;
+                    drawGrid();
+                }
+            }
+
+            // Gère le glissement sur le canvas pour créer des cellules
+            let isDrawing = false;
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                handleCanvasClick(e);
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (isDrawing) {
+                    handleCanvasClick(e);
+                }
+            });
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+
+            // Gère les événements tactiles
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isDrawing = true;
+                const touch = e.touches[0];
+                handleCanvasClick(touch);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (isDrawing) {
+                    const touch = e.touches[0];
+                    handleCanvasClick(touch);
+                }
+            });
+            canvas.addEventListener('touchend', () => {
+                isDrawing = false;
+            });
+
+
+            function nextGen() {
+                const nextGrid = createGrid(COLS, ROWS);
+                for (let col = 0; col < COLS; col++) {
+                    for (let row = 0; row < ROWS; row++) {
+                        const cell = grid[col][row];
+                        let sumNeighbors = 0;
+                        for (let i = -1; i < 2; i++) {
+                            for (let j = -1; j < 2; j++) {
+                                if (i === 0 && j === 0) continue;
+                                const x_cell = col + i;
+                                const y_cell = row + j;
+
+                                if (x_cell >= 0 && x_cell < COLS && y_cell >= 0 && y_cell < ROWS) {
+                                    sumNeighbors += grid[x_cell][y_cell];
+                                }
+                            }
+                        }
+
+                        // Appliquer les règles du jeu de la vie
+                        if (cell === 1 && (sumNeighbors < 2 || sumNeighbors > 3)) {
+                            nextGrid[col][row] = 0;
+                        } else if (cell === 0 && sumNeighbors === 3) {
+                            nextGrid[col][row] = 1;
+                        } else {
+                            nextGrid[col][row] = cell;
+                        }
+                    }
+                }
+                grid = nextGrid;
+                drawGrid();
+            }
+
+            // Événements pour les boutons du jeu de la vie
+            startButton.addEventListener('click', () => {
+                if (!interval) {
+                    interval = setInterval(nextGen, 100);
+                }
+            });
+            stopButton.addEventListener('click', () => {
+                clearInterval(interval);
+                interval = null;
+            });
+            clearButton.addEventListener('click', () => {
+                clearInterval(interval);
+                interval = null;
+                grid = createGrid(COLS, ROWS);
+                drawGrid();
+            });
+
+            // Redimensionnement initial et événements de redimensionnement
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            canvas.addEventListener('click', handleCanvasClick);
+        });
+    </script>
+
+    <!-- Script pour l'application de chat en React -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = firebase.auth;
+        const { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit } = firebase.firestore;
+
+        // Configuration Firebase et variables globales
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Modèle d'IA pour le chat
+        const CHAT_MODEL = 'gemini-2.5-flash-preview-05-20';
+
+        // Initialisation de Firebase
+        const app = firebase.app.initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const App = () => {
+            const [messages, setMessages] = useState([]);
+            const [aiMessages, setAiMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [newAiMessage, setNewAiMessage] = useState('');
+            const [activeTab, setActiveTab] = useState('chat');
+            const [loading, setLoading] = useState(false);
+            const [userId, setUserId] = useState(null);
+
+            // Authentification et configuration Firestore
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        setUserId(user.uid);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+
+                if (initialAuthToken) {
+                    signInWithCustomToken(auth, initialAuthToken).catch(console.error);
+                }
+
+                return () => unsubscribe();
+            }, []);
+
+            // Écoute des messages publics
+            useEffect(() => {
+                if (!userId) return;
+
+                const messagesCollectionRef = collection(db, `artifacts/${appId}/public/data/messages`);
+                const q = query(messagesCollectionRef, orderBy('timestamp', 'asc'), limit(50));
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const msgs = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setMessages(msgs);
+                });
+
+                return () => unsubscribe();
+            }, [userId]);
+
+            // Écoute des messages privés avec l'IA
+            useEffect(() => {
+                if (!userId) return;
+
+                const aiMessagesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/ai_messages`);
+                const q = query(aiMessagesCollectionRef, orderBy('timestamp', 'asc'), limit(50));
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const msgs = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setAiMessages(msgs);
+                });
+
+                return () => unsubscribe();
+            }, [userId]);
+
+            // Envoi d'un message public
+            const handleSendMessage = async (e) => {
+                e.preventDefault();
+                if (newMessage.trim() === '' || !userId) return;
+
+                const messagesCollectionRef = collection(db, `artifacts/${appId}/public/data/messages`);
+                await addDoc(messagesCollectionRef, {
+                    text: newMessage,
+                    sender: userId,
+                    timestamp: serverTimestamp(),
+                });
+                setNewMessage('');
+            };
+
+            // Envoi d'un message à l'IA
+            const handleSendAiMessage = async (e) => {
+                e.preventDefault();
+                if (newAiMessage.trim() === '' || !userId) return;
+
+                const aiMessagesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/ai_messages`);
+
+                // Ajouter le message de l'utilisateur
+                await addDoc(aiMessagesCollectionRef, {
+                    text: newAiMessage,
+                    sender: 'user',
+                    timestamp: serverTimestamp(),
+                });
+
+                setLoading(true);
+
+                // Historique des messages pour l'IA
+                const chatHistory = aiMessages.map(m => ({
+                    role: m.sender === 'user' ? 'user' : 'model',
+                    parts: [{ text: m.text }]
+                }));
+                chatHistory.push({ role: 'user', parts: [{ text: newAiMessage }] });
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=`;
+                const payload = {
+                    contents: chatHistory,
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const result = await response.json();
+                    const aiResponseText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (aiResponseText) {
+                        await addDoc(aiMessagesCollectionRef, {
+                            text: aiResponseText,
+                            sender: 'ai',
+                            timestamp: serverTimestamp(),
+                        });
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de la communication avec l'IA:", error);
+                    await addDoc(aiMessagesCollectionRef, {
+                        text: "Désolé, je n'ai pas pu générer de réponse pour le moment.",
+                        sender: 'ai',
+                        timestamp: serverTimestamp(),
+                    });
+                } finally {
+                    setLoading(false);
+                    setNewAiMessage('');
+                }
+            };
+
+            const renderMessages = (msgs) => {
+                return msgs.map((msg, index) => (
+                    <div
+                        key={msg.id || index}
+                        className={`flex items-end space-x-2 mb-2 ${msg.sender === userId || msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div className={`p-3 rounded-lg max-w-[70%] ${msg.sender === userId || msg.sender === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}>
+                            <p className="font-semibold text-sm">
+                                {msg.sender === userId ? 'Moi' : (msg.sender === 'user' ? 'Moi' : (msg.sender === 'ai' ? 'IA' : msg.sender.substring(0, 8)))}
+                            </p>
+                            <p>{msg.text}</p>
+                        </div>
+                    </div>
+                ));
+            };
+
+            return (
+                <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-6 flex flex-col h-[700px] mx-auto">
+                    <div className="flex justify-center mb-6 border-b border-gray-300">
+                        <button
+                            onClick={() => setActiveTab('chat')}
+                            className={`tab-button px-4 py-2 font-semibold text-lg text-gray-500 hover:text-blue-500 transition duration-300 ${activeTab === 'chat' ? 'active' : ''}`}
+                        >
+                            Chat Public
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ai_chat')}
+                            className={`tab-button px-4 py-2 font-semibold text-lg text-gray-500 hover:text-blue-500 transition duration-300 ${activeTab === 'ai_chat' ? 'active' : ''}`}
+                        >
+                            Chat avec l'IA
+                        </button>
+                    </div>
+
+                    <div className="flex-grow flex flex-col justify-between">
+                        <div className="chat-container flex-grow mb-4 p-4 bg-gray-50 rounded-lg">
+                            {activeTab === 'chat' && renderMessages(messages)}
+                            {activeTab === 'ai_chat' && renderMessages(aiMessages)}
+                            {activeTab === 'ai_chat' && loading && (
+                                <div className="flex justify-center items-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                                </div>
+                            )}
+                        </div>
+
+                        <form
+                            onSubmit={activeTab === 'chat' ? handleSendMessage : handleSendAiMessage}
+                            className="flex items-center space-x-2"
+                        >
+                            <input
+                                type="text"
+                                value={activeTab === 'chat' ? newMessage : newAiMessage}
+                                onChange={(e) => (activeTab === 'chat' ? setNewMessage(e.target.value) : setNewAiMessage(e.target.value))}
+                                placeholder={`Écrivez votre message dans le ${activeTab === 'chat' ? 'chat public' : 'chat avec l\'IA'}...`}
+                                className="flex-grow p-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300"
+                            />
+                            <button
+                                type="submit"
+                                className="bg-blue-500 text-white rounded-full p-3 hover:bg-blue-600 transition duration-300"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const container = document.getElementById('react-chat-root');
+        if (container) {
+            ReactDOM.createRoot(container).render(<App />);
+        }
+    </script>
+</body>
+</html>
